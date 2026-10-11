@@ -1,0 +1,37 @@
+services:
+  # Identifie en continu le satellite utilisé par l'antenne (un résultat toutes les 15 s)
+  starlink-live:
+    build: ./sat-finder
+    image: starlink-sat-finder
+    container_name: starlink-live
+    restart: unless-stopped
+    command: ["sat_finder.py", "--live"]
+    environment:
+      DISH_LAT: ${DISH_LAT:?indique DISH_LAT dans le fichier .env}
+      DISH_LON: ${DISH_LON:?indique DISH_LON dans le fichier .env}
+      DISH_ALT: ${DISH_ALT:-0}
+      DISH_TARGET: ${DISH_TARGET:-192.168.100.1:9200}
+    volumes:
+      - ./data:/data
+
+  # Page web du globe
+  starlink-globe:
+    image: nginx:alpine
+    container_name: starlink-globe
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8090}:80"
+    volumes:
+      - ./web/index.html:/usr/share/nginx/html/index.html:ro
+      - ./data:/usr/share/nginx/html/data:ro
+    # Derrière Traefik : supprime "ports" ci-dessus et décommente ce qui suit
+    # networks: [traefik_net]
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.starlink-globe.rule=Host(`starlink.example.com`)"
+    #   - "traefik.http.routers.starlink-globe.tls=true"
+    #   - "traefik.http.services.starlink-globe.loadbalancer.server.port=80"
+
+# networks:
+#   traefik_net:
+#     external: true
